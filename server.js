@@ -33,7 +33,7 @@ fs.readdirSync(pluginsPath).forEach(file => {
 
 // נתיב ברירת מחדל לבדיקה שהשרת עובד
 app.get('/', (req, res) => {
-    res.send('השרת המודולרי של ג'מיני פועל בהצלחה!');
+    res.send("השרת המודולרי של ג'מיני פועל בהצלחה!");
 });
 
 app.listen(PORT, () => {
