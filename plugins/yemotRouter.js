@@ -8,14 +8,14 @@ module.exports = function(app) {
         if (phone.startsWith('972')) { phone = '0' + phone.substring(3); }
         
         const ext = req.query.ApiExtension;
-        const userText = req.query.text_from_user;
-        const apiKey = req.query.gemini_key;
+        const userText = req.query.user_voice_input || req.query.val; 
+        const selection = req.query.user_digits_input || req.query.val;
         
         // שלוחה 1: שיחה עם ה-AI (הראשיבע)
         if (ext === '1') {
             if (!userText) {
                 // המאזין רק נכנס לשלוחה - נבקש ממנו להקליט
-                return res.send('id_list_message=t-נא לומר את השאלה לאחר הצליל וללחוץ סולמית בסיום.&api_speech_parameter=text_from_user&api_speech_language=he-IL');
+                return res.send('read=t-נא לומר את השאלה לאחר הצליל וללחוץ סולמית בסיום.=user_voice_input,no,speech,he-IL,50,no');
             }
             
             try {
@@ -42,7 +42,7 @@ module.exports = function(app) {
         // שלוחה 2: הגדרת הנחיית מערכת מותאמת אישית בדיבור (תמלול)
         if (ext === '2') {
             if (!userText) {
-                return res.send('id_list_message=t-נא לומר כעת את הוראות המערכת המותאמות אישית עבורך, וללחוץ סולמית בסיום.&api_speech_parameter=text_from_user&api_speech_language=he-IL');
+                return res.send('read=t-נא לומר כעת את הוראות המערכת המותאמות אישית עבורך וללחוץ סולמית בסיום.=user_voice_input,no,speech,he-IL,50,no');
             }
             // שמירת ההנחיה בזיכרון השרת עבור מספר הטלפון הזה
             global.userSettings.customInstructions[phone] = userText;
@@ -53,7 +53,7 @@ module.exports = function(app) {
         if (ext === '3') {
             const selection = req.query.ApiDigits;
             if (!selection) {
-                return res.send('read=t-לבחירת מודל גמיני שתיים נקודה חמש פלאש הקש אחת. לבחירת מודל שלוש נקודה אחת לייט הקש שתיים. לבחירת מודל שלוש נקודה אחת פרו הקש שלוש.=selection,1,1,1,7,Number,no');
+                return res.send('read=t-לבחירת מודל גמיני שתיים נקודה חמש פלאש הקש אחת. לבחירת מודל שלוש נקודה אחת לייט הקש שתיים. לבחירת מודל שלוש נקודה אחת פרו הקש שלוש.=user_digits_input,1,1,1,7,Number,no');
             }
             
             if (selection === '1') {
