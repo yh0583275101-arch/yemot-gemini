@@ -1,5 +1,6 @@
 const express = require('express'); 
 const axios = require('axios');
+const { MsEdgeTTS } = require('msedge-tts'); // הספריה החדשה של מיקרוסופט
 
 const audioCache = new Map();
 const staticPrompts = {};
@@ -23,7 +24,6 @@ module.exports = function(app) {
         
         const ext = req.query.ApiExtension;
         const geminiKey = req.query.gemini_key;
-        const ttsKey = req.query.tts_key; // קבלת מפתח הקול בנפרד!
         
         const fileName = req.query.ApiFileName;
         const pathFile = req.query.ApiPathFile;
@@ -37,15 +37,13 @@ module.exports = function(app) {
             
             if (!fileName) {
                 try {
-                    if (!ttsKey) throw new Error("No TTS Key"); 
                     if (!staticPrompts.askQuestion) {
-                        staticPrompts.askQuestion = await textToSpeechAndGetUrl("נא לומר את השאלה לאחר הצליל וללחוץ סולמית בסיום.", ttsKey);
+                        staticPrompts.askQuestion = await textToSpeechAndGetUrl("נא לומר את השאלה לאחר הצליל וללחוץ סולמית בסיום.");
                         audioCache.set('static_ask', staticPrompts.askQuestion);
                     }
                     const playGreeting = `${hostUrl}/stream_audio/static_ask`;
                     return res.send(`id_list_message=${playGreeting}&record=q_${Date.now()},no,3,15`);
                 } catch (error) {
-                    // אם אין מפתח קול או שקרתה שגיאה - מקריא כרגיל
                     return res.send(`id_list_message=t-נא לומר את השאלה לאחר הצליל וללחוץ סולמית בסיום.&record=q_${Date.now()},no,3,15`);
                 }
             }
@@ -66,14 +64,12 @@ module.exports = function(app) {
                 const cleanText = geminiText.replace(/[*#\-_]/g, '').trim();
                 
                 try {
-                    if (!ttsKey) throw new Error("No TTS Key");
-                    const base64AudioAnswer = await textToSpeechAndGetUrl(cleanText, ttsKey);
+                    const base64AudioAnswer = await textToSpeechAndGetUrl(cleanText);
                     const answerId = 'ans_' + Date.now();
                     audioCache.set(answerId, base64AudioAnswer); 
                     const playAnswerUrl = `${hostUrl}/stream_audio/${answerId}`;
                     return res.send(`playfile=${playAnswerUrl}&go_to_folder=/1`);
                 } catch (error) {
-                    // אם יצירת הקול נכשלה - הבינה תענה בקול הרובוטי של ימות המשיח
                     return res.send(`id_list_message=t-${cleanText}&go_to_folder=/1`);
                 }
 
@@ -89,9 +85,8 @@ module.exports = function(app) {
 
             if (!fileName) {
                 try {
-                    if (!ttsKey) throw new Error("No TTS Key");
                     if (!staticPrompts.systemInst) {
-                        staticPrompts.systemInst = await textToSpeechAndGetUrl("נא לומר כעת את הוראות המערכת המותאמות אישית עבורך וללחוץ סולמית בסיום.", ttsKey);
+                        staticPrompts.systemInst = await textToSpeechAndGetUrl("נא לומר כעת את הוראות המערכת המותאמות אישית עבורך וללחוץ סולמית בסיום.");
                         audioCache.set('static_inst', staticPrompts.systemInst);
                     }
                     const playInst = `${hostUrl}/stream_audio/static_inst`;
@@ -121,9 +116,8 @@ module.exports = function(app) {
 
             if (!selection) {
                 try {
-                    if (!ttsKey) throw new Error("No TTS Key");
                     if (!staticPrompts.menuMenu) {
-                        staticPrompts.menuMenu = await textToSpeechAndGetUrl(menuText, ttsKey);
+                        staticPrompts.menuMenu = await textToSpeechAndGetUrl(menuText);
                         audioCache.set('static_menu', staticPrompts.menuMenu);
                     }
                     const playMenu = `${hostUrl}/stream_audio/static_menu`;
@@ -171,7 +165,12 @@ async function speechToTextWithGemini(audioFileUrl, apiKey) {
 
 async function callGemini(promptText, apiKey, modelName, customInstruction) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-    let systemInstruction = "חוקי הגשת הטקסט: אסור לחלוטין להשתמש בסימני עיצוב טקסט כגון כוכביות, סולמיות, קווים תחתונים וכו. כתוב בפסקאות נקיות. השתמש בסימני פיסוק טבעיים. ענה מיד ולעניין. זהותך: 'הראשיבע'. ";
+    let systemInstruction = "חוקי הגשת הטקסט (קריטי עבור קריין טלפוני): " +
+    "אסור לחלוטין להשתמש בסימני עיצוב טקסט כגון כוכביות (*), סולמיות (#), קווים תחתונים (_) או מקפים משולבים. הטקסט חייב להיכתב כפסקאות נקיות ורציפות בלבד. " +
+    "השתמש בסימני פיסוק סטנדרטיים (נקודות, פסיקים) בצורה נכונה וטבעית בלבד. אל תכתוב את המילה 'פסיק' או 'נקודה' בטקסט עצמו. " +
+    "ספק תשובה מקיפה, מעמיקה ועשירה המפרקת את הנושא לגורמים. התחל את דבריך מיד ללא הקדמות או ברכות. " +
+    "זהות המפתח: חברת סמרטאל אפליקציות חכמות. " +
+    "זהות המודל: אתה מציג את עצמך כ'הַרֹאּׁשיבֶע'. ";
     if (customInstruction) systemInstruction += `\nהנחיות מהמשתמש שיש לשלב: ${customInstruction}`;
 
     const payload = {
@@ -182,21 +181,22 @@ async function callGemini(promptText, apiKey, modelName, customInstruction) {
     return response.data.candidates[0].content.parts[0].text;
 }
 
-// פונקציית הקול - מעודכנת לקול גברי, נינוח ודיבור רציף
-async function textToSpeechAndGetUrl(textToSpeak, ttsKey) {
-    const url = `https://texttospeech.googleapis.com/v1/text:synthesize?key=${ttsKey}`;
-    const payload = {
-        input: { text: textToSpeak },
-        voice: { 
-            languageCode: "he-IL", 
-            name: "he-IL-Neural2-C" // קול גברי מתקדם
-        }, 
-        audioConfig: { 
-            audioEncoding: "MP3",
-            pitch: -2.0, // מנמיך מעט את הקול שיישמע יותר בוגר ולא רובוטי-דק
-            speakingRate: 1.05 // מהירות מעט יותר גבוהה לדיבור "זריז" כמו של חבר
-        }
-    };
-    const response = await axios.post(url, payload);
-    return response.data.audioContent;
+// ==========================================
+// פונקציית הקול - מיקרוסופט אברי (חינם, בלי אשראי, בלי מפתח)
+// ==========================================
+async function textToSpeechAndGetUrl(textToSpeak) {
+    const tts = new MsEdgeTTS();
+    // מגדיר את "אברי" - קול גברי ישראלי נעים, חלק ונינוח
+    await tts.setMetadata('he-IL-AvriNeural', 'audio-24khz-48kbitrate-mono-mp3');
+    
+    const stream = tts.toStream(textToSpeak);
+    const chunks = [];
+    
+    // אוסף את חלקיקי האודיו מהשרת של מיקרוסופט
+    for await (const chunk of stream) {
+        chunks.push(chunk);
+    }
+    
+    // הופך הכל לקובץ אחד ושולח חזרה לימות המשיח
+    return Buffer.concat(chunks).toString('base64');
 }
