@@ -22,7 +22,7 @@ module.exports = function(app) {
             // אם המשתמש רק נכנס לשלוחה ועדיין לא הקליט כלום
             if (!fileName) {
                 // פקודה המשמיעה צפצוף, מקליטה ומצפה לסולמית בסיום
-                return res.send('record=t-נא לומר את השאלה לאחר הצליל וללחוץ סולמית בסיום.=user_file,no,yes,max,no,no,no');
+                return res.send('record=t-נא לומר את השאלה לאחר הצליל וללחוץ סולמית בסיום.=user_file,no,yes,120,1,5,yes');
             }
             
             if (!apiKey) {
