@@ -17,7 +17,8 @@ module.exports = function(app) {
         // --- שלוחה 1: שיחה עם הראשיבע (הקלטה) ---
         if (ext === '1') {
             if (!fileName) {
-                return res.send('record=t-נא לומר את השאלה לאחר הצליל וללחוץ סולמית בסיום.=user_file,no,yes,120,1,5,yes');
+                // תיקון הפורמט: בדיוק 6 פרמטרים לפי הדרישה של ימות המשיח. 10 שניות המתנה, מקסימום 120, 5 שניות שתיקה לניתוק, וצפצוף (yes)
+                return res.send('record=t-נא לומר את השאלה לאחר הצליל וללחוץ סולמית בסיום.=user_file,10,120,5,yes,no');
             }
             
             if (!apiKey) return res.send('id_list_message=t-שגיאה, מפתח אי פי איי לא הוגדר בשלוחה זו.&hangup=yes');
@@ -47,7 +48,7 @@ module.exports = function(app) {
         // --- שלוחה 2: הגדרת הנחיית מערכת (הקלטה) ---
         if (ext === '2') {
             if (!fileName) {
-                return res.send('record=t-נא לומר כעת את הוראות המערכת המותאמות אישית עבורך וללחוץ סולמית בסיום.=user_file,no,yes,120,1,5,yes');
+                return res.send('record=t-נא לומר כעת את הוראות המערכת המותאמות אישית עבורך וללחוץ סולמית בסיום.=user_file,10,120,5,yes,no');
             }
             
             if (!apiKey) return res.send('id_list_message=t-שגיאה, מפתח אי פי איי לא הוגדר.&hangup=yes');
@@ -66,7 +67,7 @@ module.exports = function(app) {
         // --- שלוחה 3: בחירת מודל (הקשת מקשים) ---
         if (ext === '3') {
             if (!selection) {
-                return res.send('read=t-לבחירת מודל גמיני שתיים נקודה חמש פלאש הקש אחת. לבחירת מודל שלוש נקודה אחת לייט הקש שתיים. לבחירת מודל שלוש נקודה אחת פרו הקש שלוש.=user_digits_input,1,1,7,3,No,no');
+                return res.send('read=t-לבחירת מודל גמיני שתיים נקודה חמש פלאש הקש אחת. לבחירת מודל שלוש נקודה אחת לייט הקש שתיים. לבחירת מודל שלוש נקודה אחת פרו הקש שלוש.=user_digits_input,1,1,7,3,Number,no');
             }
             
             if (selection === '1') {
