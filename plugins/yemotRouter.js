@@ -1,5 +1,4 @@
 const axios = require('axios');
-const FormData = require('form-data');
 
 module.exports = function(app) {
     
@@ -10,32 +9,25 @@ module.exports = function(app) {
         const ext = req.query.ApiExtension;
         const apiKey = req.query.gemini_key;
         
-        // ימות המשיח שולחים את נתוני ההקלטה בפרמטרים האלו (בשלוחות 1 ו-2)
-        const pathFile = req.query.ApiPathFile;
+        // ימות המשיח שולחים את שם הקובץ רק לאחר שההקלטה מסתיימת
         const fileName = req.query.ApiFileName;
-        
-        // ימות המשיח שולחים את המקשים שהוקשו בשלוחה 3
+        const pathFile = req.query.ApiPathFile;
         const selection = req.query.user_digits_input || req.query.val;
 
-        // --- שלוחה 1: שיחה עם הראשיבע (הקלטת קול) ---
+        // --- שלוחה 1: שיחה עם הראשיבע (הקלטה) ---
         if (ext === '1') {
-            // אם המשתמש רק נכנס לשלוחה ועדיין לא הקליט כלום
             if (!fileName) {
-                // פקודה המשמיעה צפצוף, מקליטה ומצפה לסולמית בסיום
                 return res.send('record=t-נא לומר את השאלה לאחר הצליל וללחוץ סולמית בסיום.=user_file,no,yes,120,1,5,yes');
             }
             
-            if (!apiKey) {
-                return res.send('id_list_message=t-שגיאה, מפתח אי פי איי לא הוגדר בשלוחה זו באתר ימות המשיח.&hangup=yes');
-            }
+            if (!apiKey) return res.send('id_list_message=t-שגיאה, מפתח אי פי איי לא הוגדר בשלוחה זו.&hangup=yes');
             
             try {
-                // הורדת הקובץ מימות המשיח ותמלול שלו באמצעות ג'מיני
                 const fileUrl = `https://call.yemot.co.il/api/get_file?path=${pathFile}/${fileName}`;
                 const userText = await speechToTextWithGemini(fileUrl, apiKey);
                 
                 if (!userText || userText.trim() === "") {
-                    return res.send('id_list_message=t-לא הצלחתי לשמוע את השאלה. נא לנסות שוב.&go_to_folder=/1');
+                    return res.send('id_list_message=t-לא הצלחתי לשמוע את השאלה ברור. נא לנסות שוב.&go_to_folder=/1');
                 }
 
                 const chosenModel = global.userSettings.models[phone] || 'gemini-2.5-flash';
@@ -48,19 +40,17 @@ module.exports = function(app) {
                 return res.send(`playfile=${audioUrl}&go_to_folder=/1`);
             } catch (error) {
                 console.error(error);
-                return res.send('id_list_message=t-חלה שגיאה בעיבוד הנתונים מול הבינה המלאכותית.&hangup=yes');
+                return res.send('id_list_message=t-חלה שגיאה בעיבוד הנתונים מול הבינה המלאכותית.&go_to_folder=/1');
             }
         }
 
-        // --- שלוחה 2: הגדרת הנחיית מערכת (הקלטת קול) ---
+        // --- שלוחה 2: הגדרת הנחיית מערכת (הקלטה) ---
         if (ext === '2') {
             if (!fileName) {
                 return res.send('record=t-נא לומר כעת את הוראות המערכת המותאמות אישית עבורך וללחוץ סולמית בסיום.=user_file,no,yes,120,1,5,yes');
             }
             
-            if (!apiKey) {
-                return res.send('id_list_message=t-שגיאה, מפתח אי פי איי לא הוגדר בשלוחה 1.&hangup=yes');
-            }
+            if (!apiKey) return res.send('id_list_message=t-שגיאה, מפתח אי פי איי לא הוגדר.&hangup=yes');
 
             try {
                 const fileUrl = `https://call.yemot.co.il/api/get_file?path=${pathFile}/${fileName}`;
@@ -77,6 +67,7 @@ module.exports = function(app) {
         if (ext === '3') {
             if (!selection) {
                 return res.send('read=t-לבחירת מודל גמיני שתיים נקודה חמש פלאש הקש אחת. לבחירת מודל שלוש נקודה אחת לייט הקש שתיים. לבחירת מודל שלוש נקודה אחת פרו הקש שלוש.=user_digits_input,1,1,7,3,No,no');
+            }
             
             if (selection === '1') {
                 global.userSettings.models[phone] = 'gemini-2.5-flash';
@@ -92,11 +83,10 @@ module.exports = function(app) {
             }
         }
 
-        return res.send('ok');
+        return res.send('id_list_message=t-השלוחה אינה נתמכת בשרת.&hangup=yes');
     });
 };
 
-// פונקציה חדשה: הורדת השמע מימות המשיח ותמלולו בחינם דרך ג'מיני
 async function speechToTextWithGemini(audioFileUrl, apiKey) {
     try {
         const fileResponse = await axios.get(audioFileUrl, { responseType: 'arraybuffer' });
@@ -115,7 +105,7 @@ async function speechToTextWithGemini(audioFileUrl, apiKey) {
         const response = await axios.post(url, payload);
         return response.data.candidates[0].content.parts[0].text;
     } catch (e) {
-        console.error("STT Error:", e);
+        console.error("STT Error:", e.message);
         return "";
     }
 }
@@ -131,7 +121,7 @@ async function callGemini(promptText, apiKey, modelName, customInstruction) {
     "זהות המודל: אתה מציג את עצמך כ'הַרֹאּׁשיבֶע'. ";
 
     if (customInstruction) {
-        systemInstruction += `\nהנחיות נוספות מותאמות אישית מהמשתמש שיש לשלב: ${customInstruction}`;
+        systemInstruction += `\nהנחיות מהמשתמש שיש לשלב: ${customInstruction}`;
     }
 
     const payload = {
