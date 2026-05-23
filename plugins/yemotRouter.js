@@ -1,6 +1,6 @@
 const express = require('express'); 
 const axios = require('axios');
-const { MsEdgeTTS } = require('msedge-tts'); // הספריה החדשה של מיקרוסופט
+const { MsEdgeTTS } = require('msedge-tts'); 
 
 const audioCache = new Map();
 const staticPrompts = {};
@@ -19,6 +19,12 @@ module.exports = function(app) {
     });
 
     app.get('/answer', async (req, res) => {
+        
+        // תיקון קריטי: עוצר את השרת אם השיחה נותקה כדי למנוע לולאות
+        if (req.query.hangup === 'yes') {
+            return res.send('');
+        }
+
         let phone = req.query.ApiPhone || 'unknown';
         if (phone.startsWith('972')) { phone = '0' + phone.substring(3); }
         
@@ -42,9 +48,12 @@ module.exports = function(app) {
                         audioCache.set('static_ask', staticPrompts.askQuestion);
                     }
                     const playGreeting = `${hostUrl}/stream_audio/static_ask`;
-                    return res.send(`id_list_message=${playGreeting}&record=q_${Date.now()},no,3,15`);
+                    // התיקון: משמיע את הקול האנושי (playfile) ומקליט לקובץ אוטומטי (ללא שם בעייתי)
+                    return res.send(`playfile=${playGreeting}&record=,no,3,15`);
                 } catch (error) {
-                    return res.send(`id_list_message=t-נא לומר את השאלה לאחר הצליל וללחוץ סולמית בסיום.&record=q_${Date.now()},no,3,15`);
+                    console.log("TTS Error:", error.message);
+                    // במקרה של שגיאה - יושמע הקול הרובוטי והקלטה אוטומטית
+                    return res.send(`id_list_message=t-נא לומר את השאלה לאחר הצליל וללחוץ סולמית בסיום.&record=,no,3,15`);
                 }
             }
             
@@ -90,9 +99,9 @@ module.exports = function(app) {
                         audioCache.set('static_inst', staticPrompts.systemInst);
                     }
                     const playInst = `${hostUrl}/stream_audio/static_inst`;
-                    return res.send(`id_list_message=${playInst}&record=inst_${Date.now()},no,3,15`);
+                    return res.send(`playfile=${playInst}&record=,no,3,15`);
                 } catch (error) {
-                     return res.send(`id_list_message=t-נא לומר כעת את הוראות המערכת המותאמות אישית עבורך וללחוץ סולמית בסיום.&record=inst_${Date.now()},no,3,15`);
+                     return res.send(`id_list_message=t-נא לומר כעת את הוראות המערכת המותאמות אישית עבורך וללחוץ סולמית בסיום.&record=,no,3,15`);
                 }
             }
             
@@ -177,21 +186,18 @@ async function callGemini(promptText, apiKey, modelName, customInstruction) {
 }
 
 // ==========================================
-// פונקציית הקול - מיקרוסופט אברי (חינם, בלי אשראי, בלי מפתח)
+// פונקציית הקול - מיקרוסופט אברי (חינם)
 // ==========================================
 async function textToSpeechAndGetUrl(textToSpeak) {
     const tts = new MsEdgeTTS();
-    // מגדיר את "אברי" - קול גברי ישראלי נעים, חלק ונינוח
     await tts.setMetadata('he-IL-AvriNeural', 'audio-24khz-48kbitrate-mono-mp3');
     
     const stream = tts.toStream(textToSpeak);
     const chunks = [];
     
-    // אוסף את חלקיקי האודיו מהשרת של מיקרוסופט
     for await (const chunk of stream) {
         chunks.push(chunk);
     }
     
-    // הופך הכל לקובץ אחד ושולח חזרה לימות המשיח
     return Buffer.concat(chunks).toString('base64');
 }
