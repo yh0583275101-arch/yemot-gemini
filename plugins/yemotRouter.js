@@ -55,7 +55,7 @@ module.exports = function(app) {
         // --- שלוחה 2: הגדרת הנחיית מערכת (הקלטת קול) ---
         if (ext === '2') {
             if (!fileName) {
-                return res.send('record=t-נא לומר כעת את הוראות המערכת המותאמות אישית עבורך וללחוץ סולמית בסיום.=user_file,no,yes,max,no,no,no');
+                return res.send('record=t-נא לומר כעת את הוראות המערכת המותאמות אישית עבורך וללחוץ סולמית בסיום.=user_file,no,yes,120,1,5,yes');
             }
             
             if (!apiKey) {
@@ -76,8 +76,7 @@ module.exports = function(app) {
         // --- שלוחה 3: בחירת מודל (הקשת מקשים) ---
         if (ext === '3') {
             if (!selection) {
-                return res.send('read=t-לבחירת מודל גמיני שתיים נקודה חמש פלאש הקש אחת. לבחירת מודל שלוש נקודה אחת לייט הקש שתיים. לבחירת מודל שלוש נקודה אחת פרו הקש שלוש.=user_digits_input,1,1,1,7,Number,no');
-            }
+                return res.send('read=t-לבחירת מודל גמיני שתיים נקודה חמש פלאש הקש אחת. לבחירת מודל שלוש נקודה אחת לייט הקש שתיים. לבחירת מודל שלוש נקודה אחת פרו הקש שלוש.=user_digits_input,1,1,7,3,No,no');
             
             if (selection === '1') {
                 global.userSettings.models[phone] = 'gemini-2.5-flash';
