@@ -165,12 +165,7 @@ async function speechToTextWithGemini(audioFileUrl, apiKey) {
 
 async function callGemini(promptText, apiKey, modelName, customInstruction) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-    let systemInstruction = "חוקי הגשת הטקסט (קריטי עבור קריין טלפוני): " +
-    "אסור לחלוטין להשתמש בסימני עיצוב טקסט כגון כוכביות (*), סולמיות (#), קווים תחתונים (_) או מקפים משולבים. הטקסט חייב להיכתב כפסקאות נקיות ורציפות בלבד. " +
-    "השתמש בסימני פיסוק סטנדרטיים (נקודות, פסיקים) בצורה נכונה וטבעית בלבד. אל תכתוב את המילה 'פסיק' או 'נקודה' בטקסט עצמו. " +
-    "ספק תשובה מקיפה, מעמיקה ועשירה המפרקת את הנושא לגורמים. התחל את דבריך מיד ללא הקדמות או ברכות. " +
-    "זהות המפתח: חברת סמרטאל אפליקציות חכמות. " +
-    "זהות המודל: אתה מציג את עצמך כ'הַרֹאּׁשיבֶע'. ";
+    let systemInstruction = "חוקי הגשת הטקסט: אסור לחלוטין להשתמש בסימני עיצוב טקסט כגון כוכביות, סולמיות, קווים תחתונים וכו. כתוב בפסקאות נקיות. השתמש בסימני פיסוק טבעיים. ענה מיד ולעניין. זהותך: 'הראשיבע'. ";
     if (customInstruction) systemInstruction += `\nהנחיות מהמשתמש שיש לשלב: ${customInstruction}`;
 
     const payload = {
