@@ -9,16 +9,17 @@ module.exports = function(app) {
         const ext = req.query.ApiExtension;
         const apiKey = req.query.gemini_key;
         
-        // ימות המשיח שולחים את שם הקובץ רק לאחר שההקלטה מסתיימת
+        // ימות המשיח שולחים את שם הקובץ והנתיב שלו אוטומטית לאחר סיום ההקלטה
         const fileName = req.query.ApiFileName;
         const pathFile = req.query.ApiPathFile;
-        const selection = req.query.user_digits_input || req.query.val;
+        // קבלת המקש שהוקש בשלוחה 3
+        const selection = req.query.selection || req.query.val;
 
         // --- שלוחה 1: שיחה עם הראשיבע (הקלטה) ---
         if (ext === '1') {
             if (!fileName) {
-                // תיקון הפורמט: בדיוק 6 פרמטרים לפי הדרישה של ימות המשיח. 10 שניות המתנה, מקסימום 120, 5 שניות שתיקה לניתוק, וצפצוף (yes)
-                return res.send('record=t-נא לומר את השאלה לאחר הצליל וללחוץ סולמית בסיום.=user_file,10,120,5,yes,no');
+                // התיקון: נתיב ושם קובץ ריקים (שימות ינהלו לבד), ללא תפריט אישור הקלטה, ושמירה בניתוק
+                return res.send('record=t-נא לומר את השאלה לאחר הצליל וללחוץ סולמית בסיום.=,,no,yes');
             }
             
             if (!apiKey) return res.send('id_list_message=t-שגיאה, מפתח אי פי איי לא הוגדר בשלוחה זו.&hangup=yes');
@@ -48,7 +49,7 @@ module.exports = function(app) {
         // --- שלוחה 2: הגדרת הנחיית מערכת (הקלטה) ---
         if (ext === '2') {
             if (!fileName) {
-                return res.send('record=t-נא לומר כעת את הוראות המערכת המותאמות אישית עבורך וללחוץ סולמית בסיום.=user_file,10,120,5,yes,no');
+                return res.send('record=t-נא לומר כעת את הוראות המערכת המותאמות אישית עבורך וללחוץ סולמית בסיום.=,,no,yes');
             }
             
             if (!apiKey) return res.send('id_list_message=t-שגיאה, מפתח אי פי איי לא הוגדר.&hangup=yes');
@@ -67,7 +68,8 @@ module.exports = function(app) {
         // --- שלוחה 3: בחירת מודל (הקשת מקשים) ---
         if (ext === '3') {
             if (!selection) {
-                return res.send('read=t-לבחירת מודל גמיני שתיים נקודה חמש פלאש הקש אחת. לבחירת מודל שלוש נקודה אחת לייט הקש שתיים. לבחירת מודל שלוש נקודה אחת פרו הקש שלוש.=user_digits_input,1,1,7,3,Number,no');
+                // פקודת read תקינה למקש אחד: (שם המשתנה, מינימום 1, מקסימום 1, 7 שניות, ללא הקראת מקש)
+                return res.send('read=t-לבחירת מודל גמיני שתיים נקודה חמש פלאש הקש אחת. לבחירת מודל שלוש נקודה אחת לייט הקש שתיים. לבחירת מודל שלוש נקודה אחת פרו הקש שלוש.=selection,1,1,7,No,no');
             }
             
             if (selection === '1') {
