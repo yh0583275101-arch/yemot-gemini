@@ -1,15 +1,17 @@
 {
-  "name": "gemini-yemot-advanced",
-  "version": "1.1.0",
-  "description": "Advanced modular Gemini Bot for Yemot Hamashiach",
+  "name": "yemot-ai-bot",
+  "version": "1.0.0",
+  "description": "AI IVR Bot",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "axios": "^1.6.8",
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
     "form-data": "^4.0.0",
-    "msedge-tts": "^1.1.2"
+    "@google/generative-ai": "^0.1.0",
+    "groq-sdk": "^0.3.0",
+    "edge-tts": "^1.1.2"
   }
 }
