@@ -1,41 +1,18 @@
 const express = require('express');
-const fs = require('fs');
-const path = require('path');
 const app = express();
-const PORT = process.env.PORT || 5000;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// משתנים גלובליים לזיכרון השרת (הנחיית מערכת ובחירת מודל)
+global.systemPrompt = "אתה חבר ויועץ בשם 'הראשיבע'. המפתח שבנה אותך זה חברת סמרטאל אפליקציות חכמות. ענה בטבעיות ובידידותיות. אסור להשתמש בכוכביות, סולמיות, הדגשות, או סימנים מיוחדים. השתמש רק באותיות, פסיקים ונקודות. כתוב משפטים ברורים כדי שהקריין יקריא אותם נכון.";
+global.selectedModel = "gemini"; // ברירת מחדל
+global.sessions = {}; // זיכרון שיחות
 
-// מאגר מקומי זמני בזיכרון השרת לשמירת הגדרות המשתמשים (מודל והנחיה) לפי מספר טלפון
-// הערה: בשרת חינמי ב-Render זה מתאפס כשהשרת הולך לישון, אך זה פתרון מעולה ללא מסד נתונים חיצוני.
-global.userSettings = {
-    models: {}, // מפתח: טלפון, ערך: שם המודל
-    customInstructions: {} // מפתח: טלפון, ערך: ההנחיה המותאמת
-};
+const chatRoute = require('./routes/chat');
+const promptRoute = require('./routes/prompt');
+const modelRoute = require('./routes/model');
 
-// טעינה דינמית של תוספים (Plugins)
-const pluginsPath = path.join(__dirname, 'plugins');
-if (!fs.existsSync(pluginsPath)){
-    fs.mkdirSync(pluginsPath);
-}
+app.use('/api/chat', chatRoute);
+app.use('/api/prompt', promptRoute);
+app.use('/api/model', modelRoute);
 
-// קריאת כל קבצי הראוטינג מתיקיית plugins
-fs.readdirSync(pluginsPath).forEach(file => {
-    if (file.endsWith('.js')) {
-        const plugin = require(path.join(pluginsPath, file));
-        if (typeof plugin === 'function') {
-            plugin(app);
-            console.log(`טוען בהצלחה את התוסף: ${file}`);
-        }
-    }
-});
-
-// נתיב ברירת מחדל לבדיקה שהשרת עובד
-app.get('/', (req, res) => {
-    res.send("השרת המודולרי של ג'מיני פועל בהצלחה!");
-});
-
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
