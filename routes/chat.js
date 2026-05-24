@@ -7,6 +7,9 @@ const Groq = require('groq-sdk');
 const { EdgeTTS } = require('edge-tts');
 
 router.get('/', async (req, res) => {
+    if (req.query.hangup === 'yes') {
+        return res.send('OK');
+    }
     const { ApiCallId, user_audio, next_action, gemini_key, groq_key, yemot_token } = req.query;
 
     if (!global.sessions[ApiCallId]) {
